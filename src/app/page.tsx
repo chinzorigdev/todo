@@ -1,103 +1,265 @@
-import Image from "next/image";
+"use client";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useState } from "react";
 
-export default function Home() {
+type TodoType = "grocery" | "work" | "personal" | "health" | "other";
+type Todo = {
+  id: number;
+  title: string;
+  completed?: boolean; // Making completed optional since it's missing in your data
+  type: TodoType;
+};
+
+const dummyTodos: Todo[] = [
+  { id: 1, title: "Buy groceries", type: "grocery", completed: false },
+  { id: 2, title: "Finish project", type: "work", completed: true },
+  { id: 3, title: "Doctor appointment", type: "health", completed: false },
+  { id: 4, title: "Call mom", type: "personal", completed: true },
+  { id: 5, title: "Read a book", type: "other", completed: false },
+  { id: 6, title: "Go for a walk", type: "health", completed: false },
+  { id: 7, title: "Buy milk", type: "grocery", completed: true },
+  { id: 8, title: "Finish report", type: "work", completed: false },
+  { id: 9, title: "Dentist appointment", type: "health", completed: false },
+  { id: 10, title: "Call dad", type: "personal", completed: true },
+  { id: 11, title: "Watch documentary", type: "other", completed: false },
+];
+
+const availableTypes: Array<TodoType | "all"> = [
+  "all",
+  "grocery",
+  "work",
+  "personal",
+  "health",
+  "other",
+];
+
+export default function ToDoPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Get filter values directly from URL search params
+  const type = searchParams.get("type") as TodoType | null;
+  const search = searchParams.get("search") || "";
+  const status = searchParams.get("status");
+
+  // State for the search input field only (to control the input value)
+  const [searchInput, setSearchInput] = useState(search);
+
+  // Helper function to update search parameters
+  const updateSearchParams = (params: Record<string, string | null>) => {
+    // Create a new URLSearchParams object from the current params
+    const newParams = new URLSearchParams(searchParams.toString());
+
+    // Update or delete parameters based on provided values
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === null) {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, value);
+      }
+    });
+
+    // Navigate to the new URL
+    router.push(`?${newParams.toString()}`);
+  };
+
+  // Handle type filter
+  const handleTypeFilter = (selectedType: TodoType | "all") => {
+    updateSearchParams({
+      type: selectedType === "all" ? null : selectedType,
+    });
+  };
+
+  // Handle status filter
+  const handleStatusFilter = (selectedStatus: string | null) => {
+    updateSearchParams({ status: selectedStatus });
+  };
+
+  // Handle search form submission
+  const handleSearch = (e: FormEvent) => {
+    e.preventDefault();
+    updateSearchParams({
+      search: searchInput.trim() ? searchInput : null,
+    });
+  };
+
+  // Filter todos based on search parameters
+  const filteredTodos = dummyTodos.filter((todo) => {
+    // Filter by type
+    if (type && todo.type !== type) return false;
+
+    // Filter by completion status
+    if (status === "completed" && !todo.completed) return false;
+    if (status === "active" && todo.completed) return false;
+
+    // Filter by search query
+    if (search && !todo.title.toLowerCase().includes(search.toLowerCase()))
+      return false;
+
+    return true;
+  });
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="max-w-xl mx-auto mt-10 p-4">
+      <h1 className="text-2xl font-bold mb-4">To Do List</h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      {/* Search form */}
+      <form onSubmit={handleSearch} className="mb-6 flex gap-2">
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Search todos..."
+          className="flex-1 p-2 border rounded"
+        />
+        <button
+          type="submit"
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          Search
+        </button>
+        {(type || status || search) && (
+          <button
+            type="button"
+            onClick={() => {
+              router.push("/");
+              setSearchInput("");
+            }}
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            Clear All
+          </button>
+        )}
+      </form>
+
+      {/* Status filter */}
+      <div className="mb-6">
+        <h2 className="text-lg font-medium mb-2">Filter by Status:</h2>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { label: "All", value: null },
+            { label: "Active", value: "active" },
+            { label: "Completed", value: "completed" },
+          ].map((statusOption) => (
+            <button
+              key={statusOption.label}
+              onClick={() => handleStatusFilter(statusOption.value)}
+              className={`px-3 py-1 rounded text-sm ${
+                statusOption.value === status ||
+                (!status && statusOption.value === null)
+                  ? "bg-blue-500 text-white font-medium"
+                  : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+              }`}
+            >
+              {statusOption.label}
+            </button>
+          ))}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+
+      {/* Type filter */}
+      <div className="mb-6">
+        <h2 className="text-lg font-medium mb-2">Filter by Category:</h2>
+        <div className="flex flex-wrap gap-2">
+          {availableTypes.map((typeOption) => (
+            <button
+              key={typeOption}
+              onClick={() => handleTypeFilter(typeOption)}
+              className={`px-3 py-1 rounded text-sm capitalize ${
+                typeOption === type || (typeOption === "all" && !type)
+                  ? "bg-blue-500 text-white font-medium"
+                  : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+              }`}
+            >
+              {typeOption}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Active filters display */}
+      {(type || status || search) && (
+        <div className="mb-4 p-3 bg-gray-50 border rounded">
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-sm font-medium text-gray-600">
+              Active filters:
+            </span>
+            {type && (
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full flex items-center gap-1">
+                Type: {type}
+                <button
+                  onClick={() => updateSearchParams({ type: null })}
+                  className="hover:text-blue-600 font-bold"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+            {status && (
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full flex items-center gap-1">
+                Status: {status}
+                <button
+                  onClick={() => updateSearchParams({ status: null })}
+                  className="hover:text-blue-600 font-bold"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+            {search && (
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full flex items-center gap-1">
+                Search: {search}
+                <button
+                  onClick={() => {
+                    updateSearchParams({ search: null });
+                    setSearchInput("");
+                  }}
+                  className="hover:text-blue-600 font-bold"
+                >
+                  ×
+                </button>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Todo list */}
+      <ul className="space-y-3">
+        {filteredTodos.length > 0 ? (
+          filteredTodos.map((todo) => (
+            <li
+              key={todo.id}
+              className="flex items-start gap-3 p-3 border rounded shadow-sm bg-white"
+            >
+              <input
+                type="checkbox"
+                checked={todo.completed}
+                readOnly
+                className="mt-1"
+              />
+              <div className="flex-1">
+                <span
+                  className={`block ${
+                    todo.completed
+                      ? "line-through text-gray-500"
+                      : "text-gray-900"
+                  }`}
+                >
+                  {todo.title}
+                </span>
+                <span className="text-xs capitalize bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                  {todo.type}
+                </span>
+              </div>
+            </li>
+          ))
+        ) : (
+          <p className="text-gray-500 italic">
+            No todos match the current filters.
+          </p>
+        )}
+      </ul>
     </div>
   );
 }
